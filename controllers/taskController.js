@@ -1,13 +1,5 @@
 const Task = require("../models/Task");
-const Project = require("../models/Project");
-
-const canAccessProject = async (userId, projectId) => {
-  const project = await Project.findById(projectId);
-  if (!project) return false;
-  const id = userId.toString();
-  if (project.createdBy.toString() === id) return true;
-  return project.members.some((m) => m.toString() === id);
-};
+const { getProjectIfMember } = require("../utils/projectAccess");
 
 exports.createTask = async (req, res) => {
   try {
@@ -16,9 +8,9 @@ exports.createTask = async (req, res) => {
     if (!projectId) {
       return res.status(400).json({ message: "projectId is required" });
     }
-    const allowed = await canAccessProject(req.user._id, projectId);
-    if (!allowed) {
-      return res.status(403).json({ message: "You do not have access to this project" });
+    const access = await getProjectIfMember(projectId, req.user._id);
+    if (!access.project) {
+      return res.status(access.code).json({ message: access.message });
     }
 
     const task = await Task.create({
@@ -39,9 +31,9 @@ exports.createTask = async (req, res) => {
 exports.getTasksByProject = async (req, res) => {
   try {
     const { projectId } = req.params;
-    const allowed = await canAccessProject(req.user._id, projectId);
-    if (!allowed) {
-      return res.status(403).json({ message: "You do not have access to this project" });
+    const access = await getProjectIfMember(projectId, req.user._id);
+    if (!access.project) {
+      return res.status(access.code).json({ message: access.message });
     }
 
     const tasks = await Task.find({ projectId })
@@ -62,6 +54,11 @@ exports.updateTask = async (req, res) => {
       return res.status(404).json({ message: "Task not found" });
     }
 
+    const access = await getProjectIfMember(task.projectId, req.user._id);
+    if (!access.project) {
+      return res.status(access.code).json({ message: access.message });
+    }
+
     if (title) task.title = title;
     if (description) task.description = description;
     if (status) task.status = status;
@@ -80,6 +77,11 @@ exports.deleteTask = async (req, res) => {
     const task = await Task.findById(req.params.id);
     if (!task) {
       return res.status(404).json({ message: "Task not found" });
+    }
+
+    const access = await getProjectIfMember(task.projectId, req.user._id);
+    if (!access.project) {
+      return res.status(access.code).json({ message: access.message });
     }
 
     await task.deleteOne();

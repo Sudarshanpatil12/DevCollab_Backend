@@ -13,6 +13,9 @@ const authRoutes = require("./routes/authRoutes");
 const projectRoutes = require("./routes/projectRoutes");
 const taskRoutes = require("./routes/taskRoutes");
 const messageRoutes = require("./routes/messageRoutes");
+const fileRoutes = require("./routes/fileRoutes");
+const analyticsRoutes = require("./routes/analyticsRoutes");
+const userRoutes = require("./routes/userRoutes");
 const { requireDB } = require("./middleware/requireDB");
 
 const app = express();
@@ -37,6 +40,9 @@ app.use("/api/auth", requireDB, authRoutes);
 app.use("/api/projects", requireDB, projectRoutes);
 app.use("/api/tasks", requireDB, taskRoutes);
 app.use("/api/messages", requireDB, messageRoutes);
+app.use("/api/files", requireDB, fileRoutes);
+app.use("/api/analytics", requireDB, analyticsRoutes);
+app.use("/api/users", requireDB, userRoutes);
 
 app.get("/", (req, res) => {
   res.json({ message: "DevCollab API is running" });
