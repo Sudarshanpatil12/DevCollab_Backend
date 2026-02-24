@@ -1,9 +1,15 @@
 const mongoose = require("mongoose");
+const connectDB = require("../config/db");
 
-function requireDB(req, res, next) {
+async function requireDB(req, res, next) {
+  if (mongoose.connection.readyState !== 1) {
+    await connectDB();
+  }
+
   if (mongoose.connection.readyState !== 1) {
     return res.status(503).json({
-      message: "Database not connected. Set MONGO_URI in server/.env (e.g. mongodb://localhost:27017/devcollab or MongoDB Atlas).",
+      message:
+        "Database not connected. Set MONGO_URI or MONGODB_URI in backend environment variables.",
     });
   }
   next();

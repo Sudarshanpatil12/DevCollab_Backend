@@ -1,25 +1,55 @@
 const mongoose = require("mongoose");
 
+let connectPromise = null;
+let warnedInvalidUri = false;
+
 const connectDB = async () => {
-  const uri = process.env.MONGO_URI || "";
+  const uri = process.env.MONGO_URI || process.env.MONGODB_URI || "";
 
   if (
     !uri ||
     uri.includes("YOUR_") ||
     (!uri.startsWith("mongodb://") && !uri.startsWith("mongodb+srv://"))
   ) {
-    console.warn(
-      "⚠️  MONGO_URI missing or invalid. Set MONGO_URI in .env (e.g. mongodb://localhost:27017/devcollab or MongoDB Atlas URI). Running without DB."
-    );
+    if (!warnedInvalidUri) {
+      warnedInvalidUri = true;
+      console.warn(
+        "⚠️  MONGO_URI/MONGODB_URI missing or invalid. Set it in environment variables."
+      );
+    }
     return;
   }
 
+  if (mongoose.connection.readyState === 1) {
+    return mongoose.connection;
+  }
+
+  if (mongoose.connection.readyState === 2 && connectPromise) {
+    return connectPromise;
+  }
+
+  if (connectPromise) {
+    return connectPromise;
+  }
+
   try {
-    const conn = await mongoose.connect(uri);
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
-  } catch (error) {
-    console.error(`Error connecting to MongoDB: ${error.message}`);
-    process.exit(1);
+    connectPromise = mongoose
+      .connect(uri)
+      .then((conn) => {
+        console.log(`MongoDB Connected: ${conn.connection.host}`);
+        return conn.connection;
+      })
+      .catch((error) => {
+        console.error(`Error connecting to MongoDB: ${error.message}`);
+        return null;
+      })
+      .finally(() => {
+        connectPromise = null;
+      });
+
+    return await connectPromise;
+  } catch {
+    return null;
   }
 };
 
