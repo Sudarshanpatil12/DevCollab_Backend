@@ -1,7 +1,7 @@
 const ProjectFile = require("../models/ProjectFile");
 const { getProjectIfMember } = require("../utils/projectAccess");
 
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+const MAX_FILE_SIZE_BYTES = 3 * 1024 * 1024;
 
 exports.uploadProjectFile = async (req, res) => {
   try {
@@ -18,12 +18,12 @@ exports.uploadProjectFile = async (req, res) => {
 
     const fileSize = Number(size);
     if (!Number.isFinite(fileSize) || fileSize <= 0 || fileSize > MAX_FILE_SIZE_BYTES) {
-      return res.status(400).json({ message: "Invalid file size. Maximum allowed is 10MB" });
+      return res.status(400).json({ message: "Invalid file size. Maximum allowed is 3MB" });
     }
 
     const fileBuffer = Buffer.from(dataBase64, "base64");
     if (!fileBuffer.length || fileBuffer.length > MAX_FILE_SIZE_BYTES) {
-      return res.status(400).json({ message: "Invalid file payload. Maximum allowed is 10MB" });
+      return res.status(400).json({ message: "Invalid file payload. Maximum allowed is 3MB" });
     }
 
     const created = await ProjectFile.create({
