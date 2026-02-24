@@ -12,6 +12,7 @@ const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
 const projectRoutes = require("./routes/projectRoutes");
 const taskRoutes = require("./routes/taskRoutes");
+const messageRoutes = require("./routes/messageRoutes");
 const { requireDB } = require("./middleware/requireDB");
 
 const app = express();
@@ -35,6 +36,7 @@ connectDB();
 app.use("/api/auth", requireDB, authRoutes);
 app.use("/api/projects", requireDB, projectRoutes);
 app.use("/api/tasks", requireDB, taskRoutes);
+app.use("/api/messages", requireDB, messageRoutes);
 
 app.get("/", (req, res) => {
   res.json({ message: "DevCollab API is running" });
@@ -75,6 +77,7 @@ const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
 const projectRoutes = require("./routes/projectRoutes");
 const taskRoutes = require("./routes/taskRoutes");
+const messageRoutes = require("./routes/messageRoutes");
 const { requireDB } = require("./middleware/requireDB");
 
 const app = express();
@@ -91,6 +94,7 @@ connectDB();
 app.use("/api/auth", requireDB, authRoutes);
 app.use("/api/projects", requireDB, projectRoutes);
 app.use("/api/tasks", requireDB, taskRoutes);
+app.use("/api/messages", requireDB, messageRoutes);
 
 // Health check
 app.get("/", (req, res) => {

@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 let connectPromise = null;
 let warnedInvalidUri = false;
+let lastDbError = "";
 
 const connectDB = async () => {
   const uri = process.env.MONGO_URI || process.env.MONGODB_URI || "";
@@ -17,6 +18,7 @@ const connectDB = async () => {
         "⚠️  MONGO_URI/MONGODB_URI missing or invalid. Set it in environment variables."
       );
     }
+    lastDbError = "MONGO_URI/MONGODB_URI missing or invalid";
     return;
   }
 
@@ -36,10 +38,12 @@ const connectDB = async () => {
     connectPromise = mongoose
       .connect(uri)
       .then((conn) => {
+        lastDbError = "";
         console.log(`MongoDB Connected: ${conn.connection.host}`);
         return conn.connection;
       })
       .catch((error) => {
+        lastDbError = error.message || "MongoDB connection failed";
         console.error(`Error connecting to MongoDB: ${error.message}`);
         return null;
       })
@@ -49,8 +53,11 @@ const connectDB = async () => {
 
     return await connectPromise;
   } catch {
+    lastDbError = "MongoDB connection failed";
     return null;
   }
 };
+
+connectDB.getLastError = () => lastDbError;
 
 module.exports = connectDB;
