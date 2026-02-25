@@ -39,10 +39,13 @@ exports.getMessagesByProject = async (req, res) => {
 exports.createMessage = async (req, res) => {
   try {
     const { projectId } = req.params;
-    const message = (req.body?.message || "").trim();
+    const message = (req.body?.message || req.body?.text || "").trim();
 
     if (!message) {
       return res.status(400).json({ message: "Message is required" });
+    }
+    if (message.length > 1200) {
+      return res.status(400).json({ message: "Message is too long (max 1200 characters)" });
     }
 
     const access = await ensureProjectMember(projectId, req.user._id);
@@ -59,6 +62,6 @@ exports.createMessage = async (req, res) => {
     const populated = await Message.findById(created._id).populate("sender", "name email");
     return res.status(201).json(populated);
   } catch (error) {
-    return res.status(500).json({ message: "Server error", error: error.message });
+    return res.status(500).json({ message: "Server error", reason: error.message });
   }
 };

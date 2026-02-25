@@ -1,5 +1,8 @@
 const Project = require("../models/Project");
 const User = require("../models/User");
+const Task = require("../models/Task");
+const Message = require("../models/Message");
+const ProjectFile = require("../models/ProjectFile");
 
 exports.createProject = async (req, res) => {
   try {
@@ -65,6 +68,65 @@ exports.getProjectById = async (req, res) => {
     return res.json(project);
   } catch (error) {
     return res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+exports.getProjectOverview = async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.id)
+      .populate("members", "name email role")
+      .populate("createdBy", "name email role");
+
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    const isMember =
+      project.createdBy._id.toString() === req.user._id.toString() ||
+      project.members.some((m) => m._id.toString() === req.user._id.toString());
+    if (!isMember) {
+      return res.status(403).json({ message: "You do not have access to this project" });
+    }
+
+    const [tasks, messages, files] = await Promise.all([
+      Task.find({ projectId: project._id }).populate("assignedTo", "name email"),
+      Message.find({ projectId: project._id })
+        .sort({ createdAt: -1 })
+        .limit(20)
+        .populate("sender", "name email"),
+      ProjectFile.find({ projectId: project._id })
+        .sort({ createdAt: -1 })
+        .limit(20)
+        .populate("uploadedBy", "name email role")
+        .select("-data"),
+    ]);
+
+    const completion = {
+      total: tasks.length,
+      completed: tasks.filter((task) => task.status === "Completed").length,
+      inProgress: tasks.filter((task) => task.status === "In Progress").length,
+      todo: tasks.filter((task) => task.status === "To Do").length,
+    };
+    completion.progressPct = completion.total
+      ? Math.round((completion.completed / completion.total) * 100)
+      : 0;
+
+    return res.json({
+      project,
+      summary: {
+        completion,
+        members: project.members.length,
+        files: files.length,
+        recentMessages: messages.length,
+      },
+      recent: {
+        tasks: tasks.slice(0, 20),
+        messages,
+        files,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Server error", reason: error.message });
   }
 };
 
