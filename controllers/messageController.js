@@ -1,7 +1,12 @@
 const Message = require("../models/Message");
 const Project = require("../models/Project");
+const mongoose = require("mongoose");
 
 async function ensureProjectMember(projectId, userId) {
+  if (!mongoose.Types.ObjectId.isValid(String(projectId || ""))) {
+    return { ok: false, code: 400, message: "Invalid project id" };
+  }
+
   const project = await Project.findById(projectId).select("createdBy members");
   if (!project) return { ok: false, code: 404, message: "Project not found" };
 
@@ -60,6 +65,12 @@ exports.createMessage = async (req, res) => {
     });
 
     const populated = await Message.findById(created._id).populate("sender", "name email");
+
+    const io = req.app.get("io");
+    if (io) {
+      io.to(`project:${projectId}`).emit("message:new", populated.toObject());
+    }
+
     return res.status(201).json(populated);
   } catch (error) {
     return res.status(500).json({ message: "Server error", reason: error.message });

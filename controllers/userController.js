@@ -7,7 +7,7 @@ exports.getMyProfile = async (req, res) => {
   try {
     const userId = req.user._id;
 
-    const [projects, assignedTasks, messages, uploadedFiles] = await Promise.all([
+    const [projects, assignedTasks, messages, uploadedFiles, totalMessages, totalUploadedFiles] = await Promise.all([
       Project.find({
         $or: [{ createdBy: userId }, { members: userId }],
       }).select("_id title createdAt"),
@@ -23,6 +23,8 @@ exports.getMyProfile = async (req, res) => {
         .select("-data")
         .sort({ createdAt: -1 })
         .limit(20),
+      Message.countDocuments({ sender: userId }),
+      ProjectFile.countDocuments({ uploadedBy: userId }),
     ]);
 
     const completedTasks = assignedTasks.filter((task) => task.status === "Completed").length;
@@ -65,8 +67,8 @@ exports.getMyProfile = async (req, res) => {
         completionRate: assignedTasks.length
           ? Math.round((completedTasks / assignedTasks.length) * 100)
           : 0,
-        messagesSent: messages.length,
-        filesUploaded: uploadedFiles.length,
+        messagesSent: totalMessages,
+        filesUploaded: totalUploadedFiles,
       },
       history: {
         tasks: recentTaskHistory,

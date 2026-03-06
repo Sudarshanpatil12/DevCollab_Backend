@@ -25,6 +25,9 @@ exports.uploadProjectFile = async (req, res) => {
     if (!fileBuffer.length || fileBuffer.length > MAX_FILE_SIZE_BYTES) {
       return res.status(400).json({ message: "Invalid file payload. Maximum allowed is 3MB" });
     }
+    if (Math.abs(fileBuffer.length - fileSize) > 1024) {
+      return res.status(400).json({ message: "File payload size does not match metadata" });
+    }
 
     const created = await ProjectFile.create({
       projectId,
@@ -76,6 +79,7 @@ exports.downloadProjectFile = async (req, res) => {
       return res.status(access.code).json({ message: access.message });
     }
 
+    res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Content-Type", file.contentType || "application/octet-stream");
     res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(file.name)}"`);
     return res.send(file.data);

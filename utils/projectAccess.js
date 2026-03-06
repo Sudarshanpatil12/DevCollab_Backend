@@ -1,6 +1,11 @@
 const Project = require("../models/Project");
+const mongoose = require("mongoose");
 
 async function getProjectIfMember(projectId, userId) {
+  if (!mongoose.Types.ObjectId.isValid(String(projectId || ""))) {
+    return { project: null, code: 400, message: "Invalid project id" };
+  }
+
   const project = await Project.findById(projectId);
   if (!project) {
     return { project: null, code: 404, message: "Project not found" };

@@ -5,17 +5,33 @@ exports.createTask = async (req, res) => {
   try {
     const { title, description, status, assignedTo, projectId, deadline } = req.body;
 
+    const cleanTitle = String(title || "").trim();
     if (!projectId) {
       return res.status(400).json({ message: "projectId is required" });
     }
+    if (!cleanTitle) {
+      return res.status(400).json({ message: "Task title is required" });
+    }
+
     const access = await getProjectIfMember(projectId, req.user._id);
     if (!access.project) {
       return res.status(access.code).json({ message: access.message });
     }
 
+    const project = access.project;
+    if (assignedTo) {
+      const assignee = String(assignedTo);
+      const isMember =
+        project.createdBy.toString() === assignee ||
+        project.members.some((memberId) => memberId.toString() === assignee);
+      if (!isMember) {
+        return res.status(400).json({ message: "Assignee must be a member of the project" });
+      }
+    }
+
     const task = await Task.create({
-      title,
-      description,
+      title: cleanTitle.slice(0, 160),
+      description: String(description || "").trim().slice(0, 2000),
       status,
       assignedTo,
       projectId,
@@ -59,11 +75,23 @@ exports.updateTask = async (req, res) => {
       return res.status(access.code).json({ message: access.message });
     }
 
-    if (title) task.title = title;
-    if (description) task.description = description;
+    const project = access.project;
+
+    if (assignedTo) {
+      const assignee = String(assignedTo);
+      const isMember =
+        project.createdBy.toString() === assignee ||
+        project.members.some((memberId) => memberId.toString() === assignee);
+      if (!isMember) {
+        return res.status(400).json({ message: "Assignee must be a member of the project" });
+      }
+    }
+
+    if (typeof title === "string" && title.trim()) task.title = title.trim().slice(0, 160);
+    if (typeof description === "string") task.description = description.trim().slice(0, 2000);
     if (status) task.status = status;
     if (assignedTo) task.assignedTo = assignedTo;
-    if (deadline) task.deadline = deadline;
+    if (deadline !== undefined) task.deadline = deadline || null;
 
     const updated = await task.save();
     return res.json(updated);
